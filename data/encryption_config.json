@@ -1,0 +1,7 @@
+{
+  "salt": "62g1+vEybwDOzr/NjrcuIg==",
+  "iv": "tZ1/WOLsVVRqpgRt1hY5Sg==",
+  "iterations": 100000,
+  "keySize": 256,
+  "algorithm": "AES-CBC"
+}

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Behavior Change Analysis Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- CryptoJS for decryption -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+</head>
+<body>
+    <!-- Password Modal -->
+    <div id="password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Behavior Change Analysis Viewer</h2>
+                <p>Please enter the password to access thread content</p>
+            </div>
+            <div class="modal-body">
+                <div class="password-input-group">
+                    <label for="password-input">Password</label>
+                    <input type="password" id="password-input" placeholder="Enter password" autocomplete="off">
+                </div>
+                <div id="password-error" class="password-error hidden">
+                    Incorrect password. Please try again.
+                </div>
+                <button id="unlock-btn" class="btn-primary btn-full">Unlock</button>
+            </div>
+            <div class="modal-footer">
+                <p>Thread content is encrypted for privacy protection</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p id="loading-message">Loading data...</p>
+    </div>
+
+    <!-- Main Container (hidden until authenticated) -->
+    <div id="main-app" class="container hidden">
+        <!-- Header -->
+        <header class="header">
+            <h1>Behavior Change Analysis Viewer</h1>
+            <p class="subtitle">Vaccine Discussion Thread Analysis</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="statistics">Statistics</button>
+            <button class="tab-btn" data-tab="search">Search Threads</button>
+            <button class="tab-btn" data-tab="view">View Thread</button>
+            <button class="tab-btn" data-tab="guide">Field Guide</button>
+        </nav>
+
+        <!-- Tab Contents -->
+        <main class="tab-contents">
+            <!-- Statistics Tab -->
+            <section id="statistics" class="tab-content active">
+                <h2>Dataset Statistics</h2>
+
+                <!-- Key Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-threads">-</div>
+                        <div class="metric-label">Total Threads</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="vaccine-related">-</div>
+                        <div class="metric-label">Vaccine Related</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="behavior-changes">-</div>
+                        <div class="metric-label">Behavior Changes</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="high-confidence">-</div>
+                        <div class="metric-label">High Confidence</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Change Type Distribution</h3>
+                        <canvas id="change-type-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Confidence Level Distribution</h3>
+                        <canvas id="confidence-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Top Vaccine Types</h3>
+                        <canvas id="vaccine-type-chart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Stance Transitions</h3>
+                        <canvas id="stance-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Tab -->
+            <section id="search" class="tab-content">
+                <h2>Search and Filter Threads</h2>
+
+                <!-- Search Filters -->
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="filter-behavior">Behavior Change</label>
+                        <select id="filter-behavior">
+                            <option value="">All</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-change-type">Change Type</label>
+                        <select id="filter-change-type">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-confidence">Confidence</label>
+                        <select id="filter-confidence">
+                            <option value="">All</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-vaccine">Vaccine Type</label>
+                        <select id="filter-vaccine">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Results Count -->
+                <div class="results-count">
+                    Found <span id="results-count">0</span> threads
+                </div>
+
+                <!-- Results List -->
+                <div id="search-results" class="results-list"></div>
+            </section>
+
+            <!-- View Thread Tab -->
+            <section id="view" class="tab-content">
+                <h2>View Thread Details</h2>
+
+                <!-- Thread Selector -->
+                <div class="thread-selector">
+                    <input type="number" id="thread-id-input" placeholder="Enter Thread ID">
+                    <button id="view-thread-btn" class="btn-primary">View Thread</button>
+                </div>
+
+                <!-- Quick Access -->
+                <div class="quick-access">
+                    <div class="quick-section">
+                        <h4>High Confidence Changes</h4>
+                        <div id="quick-high-conf" class="quick-buttons"></div>
+                    </div>
+                    <div class="quick-section">
+                        <h4>Low Confidence (Need Review)</h4>
+                        <div id="quick-low-conf" class="quick-buttons"></div>
+                    </div>
+                </div>
+
+                <!-- Thread Display -->
+                <div id="thread-display" class="thread-display"></div>
+            </section>
+
+            <!-- Field Guide Tab -->
+            <section id="guide" class="tab-content">
+                <h2>Data Field Guide</h2>
+
+                <div class="guide-content">
+                    <div class="guide-section">
+                        <h3>Behavior Change Types</h3>
+                        <table class="guide-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge badge-green">Uncertainty_to_Acceptance</span></td>
+                                    <td>User moved from hesitant/uncertain to accepting vaccination</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-blue">Rejection_to_Acceptance</span></td>
+                                    <td>User changed from refusing to accepting vaccination</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-purple">Acceptance_to_Endorsement</span></td>
+                                    <td>User moved from accepting to actively recommending vaccines</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-orange">Uncertainty_to_Rejection</span></td>
+                                    <td>User moved from uncertain to refusing vaccination</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-red">Neutral_to_Rejection</span></td>
+                                    <td>User moved from neutral stance to refusing</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge badge-gray">Acceptance_to_Regret</span></td>
+                                    <td>User expressed regret after accepting vaccination</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>Influence Types</h3>
+                        <table class="guide-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Personal_Experience</td>
+                                    <td>Influence from someone sharing their personal vaccination experience</td>
+                                </tr>
+                                <tr>
+                                    <td>Medical_Evidence</td>
+                                    <td>Scientific or medical information that influenced the decision</td>
+                                </tr>
+                                <tr>
+                                    <td>Emotional_Support</td>
+                                    <td>Emotional reassurance or support from community members</td>
+                                </tr>
+                                <tr>
+                                    <td>Statistical_Data</td>
+                                    <td>Statistics or data that influenced the user</td>
+                                </tr>
+                                <tr>
+                                    <td>Community_Reassurance</td>
+                                    <td>General reassurance from the community</td>
+                                </tr>
+                                <tr>
+                                    <td>Expert_Opinion</td>
+                                    <td>Opinion from healthcare professionals or experts</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>Confidence Levels</h3>
+                        <ul class="guide-list">
+                            <li><span class="confidence-high">High</span> - Clear evidence of behavior change with explicit statements</li>
+                            <li><span class="confidence-medium">Medium</span> - Likely behavior change with some ambiguity</li>
+                            <li><span class="confidence-low">Low</span> - Possible behavior change, needs manual review</li>
+                        </ul>
+                    </div>
+
+                    <div class="guide-section">
+                        <h3>Stance Categories</h3>
+                        <ul class="guide-list">
+                            <li><strong>Positive</strong> - Favorable attitude towards vaccination</li>
+                            <li><strong>Negative</strong> - Unfavorable attitude towards vaccination</li>
+                            <li><strong>Uncertain</strong> - Hesitant or undecided about vaccination</li>
+                            <li><strong>Neutral</strong> - No clear stance expressed</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Behavior Change Analysis - Vaccine Discussion Research</p>
+            <p class="footer-note">Data is encrypted and anonymized for privacy protection</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
